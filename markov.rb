@@ -1,16 +1,16 @@
 class Markov
 
-  attr_reader :order, :freq, :beginnings
+  attr_reader :order, :freq, :beginnings, :terminators
 
   def initialize(order = 2)
     @order = order
     @freq = Hash.new {|hash, key| hash[key] = []}
     @beginnings = []
+    @terminators = /([?.!])/
   end
 
   def get_text(path)
     file = File.read(path)
-    terminators = /([?.!])/
     sentences = file.split(terminators)
     sentence = ""
     sentences.each do |thing|
@@ -25,6 +25,7 @@ class Markov
 
   def add_sentence(sentence, terminator)
     words = sentence.split(" ")
+    words << terminator
     return if words.size < 3
     buffer = []
     words.each do |word|
@@ -39,6 +40,26 @@ class Markov
     end
     # keep track of good ways to start a sentence.
     @beginnings << words[0,order]
+  end
+
+  def generate_sentence
+    sentence = []
+    first_two = start_sentence
+    sentence << first_two[0] << first_two[1]
+    next_word = ""
+    until terminators =~ next_word
+      next_word = get_next(sentence[-2..-1])
+      sentence << next_word
+    end
+    sentence.join(" ")
+  end
+
+  def get_next(last_words)
+    freq[last_words].sample
+  end
+
+  def start_sentence
+    beginnings.sample
   end
 
 end
